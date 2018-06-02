@@ -2,7 +2,7 @@
 Naive Java Word Count project
 
 This project is a multi-threaded solution to the problem given below.
----------------------------------------------------------------------
+---
 
 You want to get a word count of words from multiple documents.
 Your program will take in an list of file paths from the command line and end with all the words 
