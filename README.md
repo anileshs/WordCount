@@ -21,17 +21,17 @@ You will have a map containing:
         “like”: 2,
 
         “dogs”: 2,
-        
+
         “are”: 2,
-        
+
         “cute”: 1,
-        
+
         “these”: 1,
-        
+
         “things”: 1,
-        
+
         “the”: 1,
-        
+
         “others”: 1
 
     }
@@ -43,7 +43,7 @@ Please include an automated set of tests (including unit tests) that you feel de
 
 ---
 
-##Solution Description:
+## Solution Description:
 
 In simple words,
 
