@@ -9,6 +9,10 @@ import java.util.concurrent.ExecutionException;
  * This class is the central point of directing the output to console. Its methods have been synchronized
  * to keep the output from multiple threads from mingling. When trying to write output to console,
  * developers should consider adding a synchronized method here instead and then calling that.
+ *
+ * No tests are created for this class since its only use is to put all thread-safe functionality together.
+ * A clear 'synchronized' declaration over the methods should be enough for that.
+ *
  */
 class ConsoleOutput {
 
