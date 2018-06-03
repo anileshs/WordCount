@@ -2,94 +2,44 @@ package com.company;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.*;
 
 public class Main {
 
-    public static final String NEW_LINE = System.lineSeparator();
-    private static final ArrayList<HashMap<String, Long>> results = new ArrayList<>();
+    //region Static Final Class Variables and Collections
+
+    private static final int PARSER_TIMEOUT = 5;
+    private static final TimeUnit PARSER_TIMEOUT_UNIT = TimeUnit.SECONDS;
     private static final ArrayList<Future<HashMap<String, Long>>> _parsers = new ArrayList<>();
+    private static final ArrayList<Callable<HashMap<String, Long>>> _lineParsers = new ArrayList<>();
+
+    //endregion
 
     public static void main(String[] filePath) {
 
-        //This problem is a classic Producer-Consumer problem where producer
-        //puts into a buffer and consumer takes from the buffer.
-
-        //Validate the list of file paths.
+        //1. Validate the list of file paths.
         validateInput(filePath);
 
-        //If we reached here, then all the input file paths were valid.
+        //2. Orchestrate word count process if all the input file paths were valid.
+        orchestrateWordCount(filePath);
 
-        //Since reading is off disk - it is a slow process. Assuming a single machine
-        //with reasonable number of cores (<= 32), single reader thread should be fine.
-        //The performance can be tuned for specific cases. Multiple reader threads,
-        //reading from multiple files at the same time will cause the disk's head to jump all
-        //over the place. That is undesirable for HDDs since the movement of head is a
-        //mechanical process and therefore slow.
+        //3. Collect the results when the execution of threads is done.
+        mergeAndPrintResult();
 
-        //Even for SSDs, having multiple reader threads may not be a great idea as the
-        //task is consumer heavy - the consumer having to process multiple words in a line.
-
-        //Calculate the number of consumer (aka LineParser) tasks
-        //Not a performance tuned decision, but initializing as many line parsers as the
-        //number of processors on the machine should be fine. That will result in 100% CPU usage.
-        //Since the availableProcessors() call returns the logical processors, the case
-        //of hyper-threading has been already taken care of.
-        int processorCount = Runtime.getRuntime().availableProcessors();
-
-        //Initialize the buffer where producer and consumer will write/read data.
-        //Setting the capacity to be four times the number of consumer threads so that
-        //there is ample of space for multiple threads to work, without exhausting the
-        //system memory.
-        ArrayBlockingQueue<String> lines = new ArrayBlockingQueue<>(4 * processorCount);
-
-        //Initiate reader.
-        Thread reader = getReaderThread(filePath, lines);
-        reader.start();
-
-        //Start a executor service that will run a precomputed count of threads.
-        ExecutorService executor = Executors.newFixedThreadPool(processorCount);
-        createAndSubmitTasksTo(executor, processorCount, lines);
-
-        //First wait for reader thread to finish.
-        try {
-            reader.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            System.out.println("Interrupted when waiting for Reader thread to finish.");
-            errorExit();
-        }
-
-        //Soon after reader, parsers will be done. Wait for them.
-        //Collect the result from all parser.
-        HashMap<String, Long> result = mergeResults();
-
-        //Finally, sort the results on key in descending order.
-        Map<Long, String> sortedResult = new TreeMap<>(Comparator.reverseOrder());
-        for (String key : result.keySet()) {
-            sortedResult.put(result.get(key), key);
-        }
-
-        printLineBreak();
-        Iterator<Map.Entry<Long, String>> sortedResultIterator = sortedResult.entrySet().iterator();
-        while (sortedResultIterator.hasNext()) {
-            printEntry(sortedResultIterator.next());
-        }
-        printLineBreak();
+        //4. Wait for user to see the results.
         waitForReturnPress();
     }
 
-    private static void printEntry(Map.Entry<Long, String> resultEntry) {
-        System.out.println(resultEntry.getValue() + "\t\t" + resultEntry.getKey());
-    }
+    //region Printing Results
 
-    private static void createAndSubmitTasksTo(ExecutorService executor, int lineParserCount, ArrayBlockingQueue<String> lines) {
-        for (int index = 0; index < lineParserCount; index++) {
-            LineParser callableParser = new LineParser(lines);
-            Future<HashMap<String, Long>> futureParser = executor.submit(callableParser);
-            _parsers.add(futureParser);
-        }
+    private static void mergeAndPrintResult() {
+        ConsoleOutput.printMessageWithGaps("Merging individual parser results...");
+        HashMap<String, Long> result = mergeResults();
+        ConsoleOutput.printMessageWithGaps("Results merged.");
+        ConsoleOutput.blockPrintMap(result);
     }
 
     private static HashMap<String, Long> mergeResults() {
@@ -98,25 +48,30 @@ public class Main {
 
         //Merge the individual result of each line parser iteratively
         for (Future<HashMap<String, Long>> parser : _parsers) {
+
             //Merge the individual key in current line parser result
             HashMap<String, Long> parserResult = null;
             try {
                 parserResult = parser.get();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                //Handle it the standard way for this project.
+                final String errorHeader = "Main interrupted while awaiting LineParser result.";
+                ConsoleOutput.printInterruptedException(errorHeader, e);
             } catch (ExecutionException e) {
-                e.printStackTrace();
+                final Throwable cause = new Throwable(e).getCause();
+                final String errorHeader = "ExcecutionException thrown while Main was waiting to get individual results from Line Parser.";
+                ConsoleOutput.printExecutionException(errorHeader, cause, e);
             }
+
             if (parserResult == null) {
-                //Raise an exception
+                final String message = "Line Parser returned a null result.";
+                ConsoleOutput.printMessageWithGapsAndLineBreaks(message);
                 continue;
             }
+
             for (String key : parserResult.keySet()) {
-                if (result.containsKey(key)) {
-                    result.put(key, result.get(key) + parserResult.get(key));
-                } else {
-                    result.put(key, parserResult.get(key));
-                }
+                if (!result.containsKey(key)) result.put(key, 0L);
+                result.put(key, result.get(key) + parserResult.get(key));
             }
         }
 
@@ -124,33 +79,132 @@ public class Main {
         return result;
     }
 
-//    private static void startLineParsers(Thread[] lineParser) {
-//        for (Thread parser : lineParser){
-//            parser.start();
-//        }
-//    }
+    //endregion
 
-//    private static Thread[] getParserThreads(int parserCount, ArrayBlockingQueue<String> lines) {
-//        //Not checking for validity of value in 'parserCount'. Barricading expected.
-//        Thread[] parserThreads = new Thread[parserCount];
-//        for (int parserIndex = 0; parserIndex < parserCount; parserIndex++) {
-//            LineParser lineParser = new LineParser(lines);
-//            parserThreads[parserIndex] = new Thread(lineParser);
-//        }
-//        return parserThreads;
-//    }
+    //region Orchestration
 
-    private static Thread getReaderThread(String[] filePath, ArrayBlockingQueue<String> lines) {
-        DiskFileReader diskFileReader = new DiskFileReader(filePath, lines);
-        Thread readerThread = new Thread(diskFileReader);
-        return readerThread;
+    private static void orchestrateWordCount(String[] filePath) {
+
+        //Initialize the buffer where producer and consumer will write/read data.
+        //Setting up a LinkedBlockingQueue, so that there is no space issue in the buffer.
+        BlockingQueue<String> lines = new LinkedBlockingQueue<>();
+
+        //Initiate reader.
+        Thread reader = startReader(filePath, lines);
+
+        //Initiate parsers.
+        ExecutorService executor = startProcessors(lines);
+
+        //First wait for reader thread to finish.
+        waitForReader(reader);
+
+        //Soon after reader, parsers will be done. Wait for them.
+        waitForParsers(executor);
     }
+
+    //region Termination
+
+    private static void waitForParsers(ExecutorService executor) {
+        //While ideally there is a scope for this method to be stuck in an infinite
+        //loop, but if everything else went well, the method should return with a
+        //graceful termination of the executor service.
+
+        try {
+            //First, do a normal wait.
+            executor.awaitTermination(PARSER_TIMEOUT, PARSER_TIMEOUT_UNIT);
+
+            //If the executor service did not terminate in initial timeout,
+            //attempt to terminate it in a loop, notifying the user on console.
+            while (!executor.isTerminated()){
+                System.out.println("ExecutorService still awaiting termination...");
+                executor.awaitTermination(PARSER_TIMEOUT, PARSER_TIMEOUT_UNIT);
+            }
+
+            //Print graceful parsers termination message.
+            ConsoleOutput.printMessageWithGaps("ExecutorService gracefully terminated.");
+        } catch (InterruptedException e) {
+            final String errorHeader = "Main thread interrupted while awaiting termination of Line Parsers.";
+            ConsoleOutput.printInterruptedException(errorHeader, e);
+        }
+    }
+
+    private static void waitForReader(Thread reader) {
+        try {
+            //Just do a normal wait.
+            reader.join();
+
+            //Print graceful reader thread termination message.
+            ConsoleOutput.printMessageWithGaps("Reader thread gracefully terminated.");
+        } catch (InterruptedException e) {
+            final String errorHeader = "Interrupted when waiting for Reader thread to finish.";
+            ConsoleOutput.printInterruptedException(errorHeader, e);
+        }
+    }
+
+    //endregion
+
+    //region Invocation
+
+    private static ExecutorService startProcessors(BlockingQueue<String> lines) {
+
+        //Calculate the number of consumer (aka LineParser) tasks
+        //Not a performance tuned decision, but initializing as many line parsers as the
+        //number of processors on the machine should be fine. For large enough input,
+        //this will use available cores efficiently.
+
+        //Since the availableProcessors() call returns the logical processors, the case
+        //of hyper-threading is also taken care of.
+
+        int processorCount = Runtime.getRuntime().availableProcessors();
+
+        //Start a executor service that will run a fixed number of threads.
+        ExecutorService executor = Executors.newFixedThreadPool(processorCount);
+
+        instantiateParsers(lines, processorCount);
+        invokeParsers(executor);
+
+        executor.shutdown(); //to disable any new tasks from being submitted.
+        return executor;
+    }
+
+    private static void invokeParsers(ExecutorService executor) {
+        try {
+            final List<Future<HashMap<String, Long>>> futureTaskList = executor.invokeAll(_lineParsers);
+            ConsoleOutput.printMessageWithGaps("Line Parsers invoked by the ExecutorService.");
+            _parsers.addAll(futureTaskList);
+        } catch (InterruptedException e) {
+            final String errorHeader = "Main interrupted while awaiting invoke of Line Parsers.";
+            ConsoleOutput.printInterruptedException(errorHeader, e);
+        }
+    }
+
+    private static void instantiateParsers(BlockingQueue<String> lines, int processorCount) {
+        for (int index = 0; index < processorCount; index++) {
+            LineParser callableParser = new LineParser(lines);
+            _lineParsers.add(callableParser);
+        }
+    }
+
+    private static Thread startReader(String[] filePath, BlockingQueue<String> lines) {
+        DiskFileReader diskFileReader = new DiskFileReader(filePath, lines);
+        Thread reader = new Thread(diskFileReader);
+        reader.start();
+        return reader;
+    }
+
+    //endregion
+
+    //endregion
+
+    //region Validation
 
     private static void validateInput(String[] filePath) {
 
         //The standard input from command line is never null.
         //But we're checking for the input in this case because it has been factored out
         //in a method which can be called from other places within the class too.
+
+        ConsoleOutput.printMessageWithGaps("Validating input file paths...");
 
         StringBuilder err = new StringBuilder();
         if (filePath == null || filePath.length == 0) {
@@ -161,36 +215,42 @@ public class Main {
         }
 
         //Verify if each file path
+        assert filePath != null;
         for (String path : filePath) {
             File inputFile = new File(path);
             try {
                 //Is the given path a file?
                 if (!inputFile.isFile()) {
-                    err.append("\tInvalid File Path: " + path);
-                    err.append(NEW_LINE);
+                    err.append("\tInvalid File Path: ").append(path);
+                    err.append(ConsoleOutput.NEW_LINE);
                     continue;
                 }
                 //If the path is a file, is it readable?
                 if (!inputFile.canRead()) {
-                    err.append("\tCannot Read File: " + path);
-                    err.append(NEW_LINE);
+                    err.append("\tCannot Read File: ").append(path);
+                    err.append(ConsoleOutput.NEW_LINE);
                 }
             } catch (SecurityException securityException) {
                 //The only exception this code can throw is SecurityException
                 //when a security manager exists and denies the read access.
-                err.append("\tRead access denied for file path: " + path);
-                err.append("\tDetailed Message: " + securityException.getMessage());
-                err.append(NEW_LINE);
+                err.append("\tRead access denied for file path: ").append(path);
+                err.append("\tDetailed Message: ").append(securityException.getMessage());
+                err.append(ConsoleOutput.NEW_LINE);
             }
         }
 
-        if (err.length() == 0) return;
+        //If no error, say that and return.
+        if (err.length() == 0) {
+            ConsoleOutput.printMessageWithGaps("Done with input file path validation.");
+            return;
+        }
 
         //Now, if the String Builder is not empty, then there were errors.
-        //Show errors on the terminal and exit.
-        System.out.println("There were one or more errors with the input:");
-        System.out.println(err.toString());
-        System.out.println();
+        //Show errors on the terminal and quit the program.
+        String errorMessage = "There were one or more errors with the input:"
+                + ConsoleOutput.NEW_LINE
+                + err.toString();
+        ConsoleOutput.printFatalErrorMessage(errorMessage);
         errorExit();
     }
 
@@ -199,17 +259,20 @@ public class Main {
         System.exit(-1);
     }
 
+    //endregion
+
     private static void waitForReturnPress() {
         System.out.println();
         System.out.println("Press Return key to exit...");
         try {
-            System.in.read();
+            final int read = System.in.read();
+            assert read >= 0;
         } catch (IOException e) {
-            e.printStackTrace();
+            //Any exception at this point of time is useless. We are exiting
+            //anyway. However, let's log it for the sake of good coding.
+            final String errorHeader = "IOException raised when waiting for user to press Return.";
+            ConsoleOutput.printIOException(errorHeader, e);
+            //Alternatively, we could call e.printStackTrace();
         }
-    }
-
-    private static void printLineBreak() {
-        System.out.println("----------------------------------");
     }
 }
