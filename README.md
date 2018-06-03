@@ -1,5 +1,4 @@
 # WordCount
-Naive Java Word Count project
 
 ## Problem Statement:
 
@@ -14,27 +13,37 @@ For example, if my documents are:
 “Are these things like the others?”
  
 You will have a map containing:
-{
-“I”: 1,
-“like”: 2,
-“dogs”: 2,
-“are”: 2,
-“cute”: 1,
-“these”: 1,
-“things”: 1,
-“the”: 1,
-“others”: 1
-}
+    
+    {
+
+        “I”: 1,
+
+        “like”: 2,
+
+        “dogs”: 2,
+        
+        “are”: 2,
+        
+        “cute”: 1,
+        
+        “these”: 1,
+        
+        “things”: 1,
+        
+        “the”: 1,
+        
+        “others”: 1
+
+    }
  
-## Desired implementation:
+### Desired implementation:
 An ideal implementation would use threads to parallelize the work as much as possible. Consider what parts of the problem can be solved asynchronously and structure your solution accordingly.
  
 Please include an automated set of tests (including unit tests) that you feel demonstrates the correctness of your solution. 
 
 ---
 
-Solution Description:
----
+##Solution Description:
 
 In simple words,
 
@@ -60,3 +69,6 @@ Even for SSDs, having multiple reader threads may not be a great idea as the tas
 1. **_Main:_** The entry point which also does the orchestration of threads.
 2. **_DiskFileReader:_** A Runnable which performs the task of reading the bunch of file paths provided as the input and put individual lines in a blocking collection.
 3. **_LineParser:_** A Callable that reads in lines from a blocking collection and performs word count on each line. The results are stored locally, which can be extracted when the thread is done.
+4. **_ConsoleOutput:_** The class responsible for directing the text output to console. Since the application is multi-threaded, there are numerous exceptions possible and multiple threads racing
+ for console. Hence it made sense to have a central class that would take care of it. When big enough, this class can be further
+ broken down into two classes - one would be a dedicated central exception handler; other would be just clean printing the information to screen.
