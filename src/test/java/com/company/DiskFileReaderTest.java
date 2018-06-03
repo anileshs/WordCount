@@ -54,7 +54,9 @@ class DiskFileReaderTest {
         final BlockingQueue<String> linesFromDiskFileReader = new LinkedBlockingQueue<>();
         final String sep = File.separator;
         final String pathToTextFile = new File(".").getAbsolutePath()
+                + sep + "src"
                 + sep + "test"
+                + sep + "resources"
                 + sep + "TestData"
                 + sep + "hamlet.txt";
         final String filePath = new File(pathToTextFile).getPath();

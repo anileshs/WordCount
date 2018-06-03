@@ -8,7 +8,7 @@ import java.util.concurrent.Callable;
  * The callable class to parse one line at a time from a blocking queue passed in the constructor.
  * The result of parsing is stored in a local hash map.
  */
-class LineParser implements Callable<HashMap<String, Long>> {
+public class LineParser implements Callable<HashMap<String, Long>> {
 
     //region Static Final Class Variables and Collections
 

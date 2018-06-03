@@ -8,7 +8,7 @@ import java.util.concurrent.BlockingQueue;
 /**
  * The class which can be put on a thread and used for reading input from disk.
  */
-class DiskFileReader implements Runnable {
+public class DiskFileReader implements Runnable {
 
     //region Final Variables and Collections
 

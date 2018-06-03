@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
 
-class Main {
+public class Main {
 
     //region Static Final Class Variables and Collections
 
