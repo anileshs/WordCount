@@ -18,7 +18,7 @@ public class Main {
 
     //endregion
 
-    public static void main(String[] filePath) throws Exception {
+    public static void main(String[] filePath) {
 
         //1. Validate the list of file paths.
         validateInput(filePath);
@@ -195,7 +195,7 @@ public class Main {
 
     //region Validation
 
-    private static void validateInput(String[] filePath) throws Exception {
+    private static void validateInput(String[] filePath) throws IllegalArgumentException {
 
         //The standard input from command line is never null.
         //But we're checking for the input in this case because it has been factored out
@@ -206,7 +206,7 @@ public class Main {
         StringBuilder err = new StringBuilder();
         if (filePath == null || filePath.length == 0) {
             String nullOrEmptyListMessage = "No file path provided.";
-            throw new Exception(nullOrEmptyListMessage);
+            throw new IllegalArgumentException(nullOrEmptyListMessage);
         }
 
         //Verify if each file path
@@ -244,7 +244,7 @@ public class Main {
         String errorMessage = "There were one or more errors with the input:"
                 + ConsoleOutput.NEW_LINE
                 + err.toString();
-        throw new Exception(errorMessage);
+        throw new IllegalArgumentException(errorMessage);
     }
 
     //endregion
