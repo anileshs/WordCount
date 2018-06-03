@@ -52,10 +52,6 @@ class ConsoleOutput {
         System.out.println(message);
     }
 
-    static synchronized void printFatalErrorMessage(String message) {
-        printTaggedMessage(FATAL_ERROR_TAG, message);
-    }
-
     private static synchronized void printDetailedInterruptionCause(String message) {
         printTaggedMessage(DETAILED_CAUSE_TAG, message);
     }

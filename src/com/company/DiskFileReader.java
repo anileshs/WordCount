@@ -36,7 +36,7 @@ class DiskFileReader implements Runnable {
         markBlockingQueueAsDone();
     }
 
-    private void markBlockingQueueAsDone(){
+    private void markBlockingQueueAsDone() {
         //To tell that the reading is done, we add the END_MARKER at the end.
         try {
             _lines.put(ConsoleOutput.END_MARKER);

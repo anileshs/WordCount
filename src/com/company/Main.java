@@ -1,13 +1,12 @@
 package com.company;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
 
-public class Main {
+class Main {
 
     //region Static Final Class Variables and Collections
 
@@ -15,10 +14,11 @@ public class Main {
     private static final TimeUnit PARSER_TIMEOUT_UNIT = TimeUnit.SECONDS;
     private static final ArrayList<Future<HashMap<String, Long>>> _parsers = new ArrayList<>();
     private static final ArrayList<Callable<HashMap<String, Long>>> _lineParsers = new ArrayList<>();
+    private static HashMap<String, Long> result;
 
     //endregion
 
-    public static void main(String[] filePath) {
+    public static void main(String[] filePath) throws Exception {
 
         //1. Validate the list of file paths.
         validateInput(filePath);
@@ -28,16 +28,13 @@ public class Main {
 
         //3. Collect the results when the execution of threads is done.
         mergeAndPrintResult();
-
-        //4. Wait for user to see the results.
-        waitForReturnPress();
     }
 
     //region Printing Results
 
     private static void mergeAndPrintResult() {
         ConsoleOutput.printMessageWithGaps("Merging individual parser results...");
-        HashMap<String, Long> result = mergeResults();
+        result = mergeResults();
         ConsoleOutput.printMessageWithGaps("Results merged.");
         ConsoleOutput.blockPrintMap(result);
     }
@@ -115,7 +112,7 @@ public class Main {
 
             //If the executor service did not terminate in initial timeout,
             //attempt to terminate it in a loop, notifying the user on console.
-            while (!executor.isTerminated()){
+            while (!executor.isTerminated()) {
                 System.out.println("ExecutorService still awaiting termination...");
                 executor.awaitTermination(PARSER_TIMEOUT, PARSER_TIMEOUT_UNIT);
             }
@@ -198,7 +195,7 @@ public class Main {
 
     //region Validation
 
-    private static void validateInput(String[] filePath) {
+    private static void validateInput(String[] filePath) throws Exception {
 
         //The standard input from command line is never null.
         //But we're checking for the input in this case because it has been factored out
@@ -209,13 +206,10 @@ public class Main {
         StringBuilder err = new StringBuilder();
         if (filePath == null || filePath.length == 0) {
             String nullOrEmptyListMessage = "No file path provided.";
-            System.out.println(nullOrEmptyListMessage);
-            System.out.println();
-            errorExit();
+            throw new Exception(nullOrEmptyListMessage);
         }
 
         //Verify if each file path
-        assert filePath != null;
         for (String path : filePath) {
             File inputFile = new File(path);
             try {
@@ -250,29 +244,8 @@ public class Main {
         String errorMessage = "There were one or more errors with the input:"
                 + ConsoleOutput.NEW_LINE
                 + err.toString();
-        ConsoleOutput.printFatalErrorMessage(errorMessage);
-        errorExit();
-    }
-
-    private static void errorExit() {
-        waitForReturnPress();
-        System.exit(-1);
+        throw new Exception(errorMessage);
     }
 
     //endregion
-
-    private static void waitForReturnPress() {
-        System.out.println();
-        System.out.println("Press Return key to exit...");
-        try {
-            final int read = System.in.read();
-            assert read >= 0;
-        } catch (IOException e) {
-            //Any exception at this point of time is useless. We are exiting
-            //anyway. However, let's log it for the sake of good coding.
-            final String errorHeader = "IOException raised when waiting for user to press Return.";
-            ConsoleOutput.printIOException(errorHeader, e);
-            //Alternatively, we could call e.printStackTrace();
-        }
-    }
 }

@@ -13,6 +13,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit Test class for DiskFileReader class.
+ */
 class DiskFileReaderTest {
 
     //Other tests that could be added to the suite:
@@ -20,21 +23,23 @@ class DiskFileReaderTest {
     //2. Test with empty file
 
     @Test
-    void instantiationShouldThrowWithNullLines(){
+    void instantiationShouldThrowWithNullLines() {
+        final BlockingQueue<String> lines = null;
         final IllegalArgumentException illegalArgumentException = assertThrows(IllegalArgumentException.class,
-                () -> new DiskFileReader(new String[0], null));
+                () -> new DiskFileReader(new String[0], lines));
         assertEquals("'lines' cannot be null.", illegalArgumentException.getMessage());
     }
 
     @Test
-    void instantiationShouldThrowWithNullPaths(){
+    void instantiationShouldThrowWithNullPaths() {
+        final String[] filePath = null;
         final IllegalArgumentException illegalArgumentException = assertThrows(IllegalArgumentException.class,
-                () -> new DiskFileReader(null, new LinkedBlockingQueue<>()));
+                () -> new DiskFileReader(filePath, new LinkedBlockingQueue<>()));
         assertEquals("'filePath' cannot be null.", illegalArgumentException.getMessage());
     }
 
     @Test
-    void linesShouldContainEndMarkerAsTheLastElement(){
+    void linesShouldContainEndMarkerAsTheLastElement() {
         final LinkedBlockingQueue<String> lines = new LinkedBlockingQueue<>();
         DiskFileReader dfr = new DiskFileReader(new String[0], lines);
         dfr.run();
@@ -60,7 +65,7 @@ class DiskFileReaderTest {
 
         List<String> expectedLines = Files.readAllLines(Paths.get(filePath));
         expectedLines.add(ConsoleOutput.END_MARKER);
-        Thread reader = new Thread(new DiskFileReader(new String[] {filePath}, linesFromDiskFileReader));
+        Thread reader = new Thread(new DiskFileReader(new String[]{filePath}, linesFromDiskFileReader));
         reader.start();
         reader.join();
         List<String> actualLines = new LinkedList<>();
