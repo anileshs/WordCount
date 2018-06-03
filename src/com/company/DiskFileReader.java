@@ -20,6 +20,8 @@ class DiskFileReader implements Runnable {
     //region Constructor
 
     DiskFileReader(String[] filePath, BlockingQueue<String> lines) {
+        if (filePath == null) throw new IllegalArgumentException("'filePath' cannot be null.");
+        if (lines == null) throw new IllegalArgumentException("'lines' cannot be null.");
         _filePath = filePath;
         _lines = lines;
     }
@@ -30,16 +32,15 @@ class DiskFileReader implements Runnable {
 
     @Override
     public void run() {
-        ConsoleOutput.printMessageWithGaps("Reading the lines from input files...");
         populateLines();
         markBlockingQueueAsDone();
-        ConsoleOutput.printMessageWithGaps("Done reading lines from input files.");
     }
 
     private void markBlockingQueueAsDone(){
         //To tell that the reading is done, we add the END_MARKER at the end.
         try {
             _lines.put(ConsoleOutput.END_MARKER);
+            ConsoleOutput.printMessageWithGaps("Done reading lines from input files.");
         } catch (InterruptedException e) {
             final String errorHeader = "Failed to mark the buffer as done. Kill the program manually.";
             ConsoleOutput.printInterruptedException(errorHeader, e);
@@ -47,6 +48,7 @@ class DiskFileReader implements Runnable {
     }
 
     private void populateLines() {
+        ConsoleOutput.printMessageWithGaps("Reading the lines from input files...");
         //Iterate over all the files provided in the array
         for (String path : _filePath) {
             //1. Open the file

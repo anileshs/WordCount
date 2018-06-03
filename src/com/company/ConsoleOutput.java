@@ -19,7 +19,7 @@ class ConsoleOutput {
     private static final String DETAILED_CAUSE_TAG = "Detailed Cause";
     private static final String CAUSE_TAG = "Exception Cause";
     private static final String FATAL_ERROR_TAG = "FATAL ERROR";
-    static final String END_MARKER = "$$$ ### --- %%%";
+    static final String END_MARKER = "$$$ ### --- %%% !!! @@@ ^^^";
 
     //endregion
 
