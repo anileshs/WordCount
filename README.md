@@ -43,7 +43,7 @@ Please include an automated set of tests (including unit tests) that you feel de
 
 ---
 
-##Solution Description:
+## Solution Description:
 
 In simple words,
 
