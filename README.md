@@ -21,17 +21,17 @@ You will have a map containing:
         “like”: 2,
 
         “dogs”: 2,
-        
+
         “are”: 2,
-        
+
         “cute”: 1,
-        
+
         “these”: 1,
-        
+
         “things”: 1,
-        
+
         “the”: 1,
-        
+
         “others”: 1
 
     }
