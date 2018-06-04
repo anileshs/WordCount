@@ -60,13 +60,13 @@ class DiskFileReaderTest {
                 + sep + "TestData"
                 + sep + "hamlet.txt";
         final String filePath = new File(pathToTextFile).getPath();
-        List<String> expectedLines = Files.readAllLines(Paths.get(filePath));
-        expectedLines.add(ConsoleOutput.END_MARKER);
 
         //endregion
 
         //region Act
 
+        List<String> expectedLines = Files.readAllLines(Paths.get(filePath));
+        expectedLines.add(ConsoleOutput.END_MARKER);
         Thread reader = new Thread(new DiskFileReader(new String[]{filePath}, linesFromDiskFileReader));
         reader.start();
         reader.join();
