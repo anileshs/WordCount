@@ -32,15 +32,18 @@ public class DiskFileReader implements Runnable {
 
     @Override
     public void run() {
-        populateLines();
-        markBlockingQueueAsDone();
+        try {
+            populateLines();
+        } finally {
+            markBlockingQueueAsDone();
+        }
     }
 
     private void markBlockingQueueAsDone() {
         //To tell that the reading is done, we add the END_MARKER at the end.
         try {
             _lines.put(ConsoleOutput.END_MARKER);
-            ConsoleOutput.printMessageWithGaps("Done reading lines from input files.");
+            ConsoleOutput.printMessageWithGaps("Marked the BlockingQueue as done.");
         } catch (InterruptedException e) {
             final String errorHeader = "Failed to mark the buffer as done. Kill the program manually.";
             ConsoleOutput.printInterruptedException(errorHeader, e);
@@ -66,6 +69,7 @@ public class DiskFileReader implements Runnable {
                 ConsoleOutput.printInterruptedException(errorHeader, e);
             }
         }
+        ConsoleOutput.printMessageWithoutGaps("Done reading lines from  all input files.");
     }
 
     //endregion
